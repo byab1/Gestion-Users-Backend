@@ -7,7 +7,7 @@ Cette application web permet de gérer des utilisateurs avec authentification, r
 ## 🛠 Technologies utilisées
 
 ### Backend
-- **Symfony 6**
+- **Symfony 7.3**
 - **Doctrine ORM**
 - **JWT Authentication** (LexikJWTAuthenticationBundle)
 - **PHPUnit** pour les tests unitaires
@@ -18,20 +18,7 @@ Cette application web permet de gérer des utilisateurs avec authentification, r
 
 ## 📂 Structure du projet
 
-backend/ # Symfony API
-├─ src/
-| |- Command/ # Commande création compte admin    
-│ ├─ Controller/ # Contrôleurs API
-│ ├─ Entity/ # Entités Doctrine
-│ ├─ DTO/ # Data Transfer Objects
-│ ├─ Repository/ # Repositories
-│ └─ Service/ # Service
-├─ tests/ # Tests unitaires et fonctionnels
-├─ config/
-│ ├─ packages/
-│ │ ├─ security.yaml
-│ │ └─ lexik_jwt_authentication.yaml
-│ └─ routes.yaml
+![Texte alternatif](doc/structure.png)
 
 
 ---
