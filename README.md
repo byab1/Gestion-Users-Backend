@@ -32,3 +32,51 @@ backend/ # Symfony API
 │ │ ├─ security.yaml
 │ │ └─ lexik_jwt_authentication.yaml
 │ └─ routes.yaml
+
+
+---
+
+## ⚙️ Instructions d’installation
+
+### 1. Backend Symfony
+
+1. Cloner le dépôt :
+
+```bash
+git clone <repo-url>
+cd backend
+
+2. Installer les dépendances :
+
+```bash
+composer install
+
+3. Configurer la base de données .env :
+
+```bash
+DATABASE_URL="mysql://user:password@127.0.0.1:3306/api_gestion_users_db"
+
+4. Créer la base de données et le schéma
+
+```bash
+php bin/console doctrine:database:create
+php bin/console doctrine:schema:create
+
+5. Générer les clés JWT :
+
+```bash
+php bin/console lexik:jwt:generate-keypair
+
+6. Lancer le serveur Symfony :
+
+```bash
+symfony serve
+# ou
+php -S 127.0.0.1:8000 -t public
+
+
+### 2. Tests
+
+Exécuter les tests PHPUnit :
+
+
