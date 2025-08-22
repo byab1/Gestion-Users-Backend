@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Entity\Log;
 use App\Repository\UserRepository;
 use App\Service\LoggerService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -13,7 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/users')]
+#[Route('/api/users')]
 class UserController extends AbstractController
 {
     #[Route('', name: 'user_index', methods: ['GET'])]
@@ -64,7 +63,7 @@ class UserController extends AbstractController
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
         LoggerService $logger
-    ): JsonResponse {
+        ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
         $user = new User();
