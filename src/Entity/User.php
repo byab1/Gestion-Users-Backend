@@ -95,10 +95,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
         return array_unique($roles);
     }
-    public function setRoles(array $roles): self { $this->roles = $roles; return $this; }
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles; return $this;
+    }
 
-    public function getPassword(): ?string { return $this->password; }
-    public function setPassword(string $password): self { $this->password = $password; return $this; }
+    public function getPassword(): ?string
+    {
+        return $this->password;
+    }
+
+    public function setPassword(string $password): self
+    {
+        $this->password = $password;
+        return $this;
+    }
 
     public function isActive(): bool
     {
