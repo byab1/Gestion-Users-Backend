@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Log;
 use App\Repository\UserRepository;
+use App\Service\LoggerService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -61,7 +62,8 @@ class UserController extends AbstractController
     public function create(
         Request $request,
         EntityManagerInterface $em,
-        UserPasswordHasherInterface $passwordHasher
+        UserPasswordHasherInterface $passwordHasher,
+        LoggerService $logger
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -74,13 +76,13 @@ class UserController extends AbstractController
 
         $em->persist($user);
 
-        // Log
-        $log = new Log();
-        $log->setUser($this->getUser());
-        $log->setAction("Création utilisateur: " . $user->getEmail());
-        $em->persist($log);
-
         $em->flush();
+
+        $logger->log(
+            $this->getUser(),
+            'CREATE_USER',
+            sprintf('Utilisateur %s créé avec ID %d', $user->getEmail(), $user->getId())
+        );
 
         return $this->json(['message' => 'Utilisateur créé', 'id' => $user->getId()], 201);
     }
@@ -91,7 +93,8 @@ class UserController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         UserRepository $userRepository,
-        UserPasswordHasherInterface $passwordHasher
+        UserPasswordHasherInterface $passwordHasher,
+        LoggerService $logger
     ): JsonResponse {
         $user = $userRepository->find($id);
         if (!$user) return $this->json(['error' => 'Utilisateur non trouvé'], 404);
@@ -107,30 +110,26 @@ class UserController extends AbstractController
 
         $em->persist($user);
 
-        // Log
-        $log = new Log();
-        $log->setUser($this->getUser());
-        $log->setAction("Mise à jour utilisateur: " . $user->getEmail());
-        $em->persist($log);
-
         $em->flush();
+
+        $logger->log($user, 'UPDATE_PROFILE', 'Profil mis à jour');
 
         return $this->json(['message' => 'Utilisateur mis à jour']);
     }
 
     #[Route('/{id}', name: 'user_delete', methods: ['DELETE'])]
-    public function delete(int $id, EntityManagerInterface $em, UserRepository $userRepository): JsonResponse
+    public function delete(int $id, EntityManagerInterface $em, UserRepository $userRepository, LoggerService $logger): JsonResponse
     {
         $user = $userRepository->find($id);
         if (!$user) return $this->json(['error' => 'Utilisateur non trouvé'], 404);
 
         $em->remove($user);
 
-        // Log
-        $log = new Log();
-        $log->setUser($this->getUser());
-        $log->setAction("Suppression utilisateur: " . $user->getEmail());
-        $em->persist($log);
+        $logger->log(
+            $this->getUser(),
+            'DELETE_USER',
+            sprintf('Suppression %s utilisateur : ID %d', $user->getEmail(), $user->getId())
+        );
 
         $em->flush();
 

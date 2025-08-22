@@ -39,8 +39,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
-    
-    #[ORM\Column(type: 'datetime_immutable')]
+
+    #[ORM\Column(type: 'datetime_immutable', nullable:true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
     #[ORM\Column(nullable: true)]
