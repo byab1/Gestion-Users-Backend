@@ -17,9 +17,22 @@ Cette application web permet de gérer des utilisateurs avec authentification, r
 ---
 
 ## 📂 Structure du projet
-
-![Structure du projet](img/structure.png)
-<img src="img/structure.png" alt="Diagramme" width="400"/>
+```
+backend/ # Symfony API
+├─ src/
+| |- Command/ # Commande création compte admin    
+│ ├─ Controller/ # Contrôleurs API
+│ ├─ Entity/ # Entités Doctrine
+│ ├─ DTO/ # Data Transfer Objects
+│ ├─ Repository/ # Repositories
+│ └─ Service/ # Service
+├─ tests/ # Tests unitaires et fonctionnels
+├─ config/
+│ ├─ packages/
+│ │ ├─ security.yaml
+│ │ └─ lexik_jwt_authentication.yaml
+│ └─ routes.yaml
+```
 
 
 ---
