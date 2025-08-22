@@ -18,7 +18,8 @@ Cette application web permet de gérer des utilisateurs avec authentification, r
 
 ## 📂 Structure du projet
 
-![Texte alternatif](doc/structure.png)
+![Structure du projet](img/structure.png)
+<img src="img/structure.png" alt="Diagramme" width="400"/>
 
 
 ---
