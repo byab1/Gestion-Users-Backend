@@ -20,6 +20,9 @@ class Log
     #[ORM\Column(length: 255)]
     private ?string $action = null;
 
+    #[ORM\Column(length: 255)]
+    private ?string $details = null;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -50,6 +53,17 @@ class Log
     public function setAction(string $action): self
     {
         $this->action = $action;
+        return $this;
+    }
+
+    public function getDetails(): ?string
+    {
+        return $this->details;
+    }
+
+    public function setDetails(string $details): self
+    {
+        $this->details = $details;
         return $this;
     }
 
