@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Dto\UserData;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\LoggerService;
@@ -11,6 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/users')]
 class UserController extends AbstractController
@@ -62,19 +64,53 @@ class UserController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
-        LoggerService $logger
+        LoggerService $logger,
+        ValidatorInterface $validator
         ): JsonResponse {
-        $data = json_decode($request->getContent(), true);
 
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $data = new UserData();
+        $data->name = $request->request->get('name');
+        $data->email = $request->request->get('email');
+        $data->password = $request->request->get('password');
+        $data->active = $request->request->get('active') !== null ? filter_var($request->request->get('active'), FILTER_VALIDATE_BOOLEAN) : true;
+
+        // Gestion des rôles
+        $roles = $request->request->all('roles');
+        if (empty($roles)) {
+            $rolesRaw = $request->request->get('roles');
+            $roles = $rolesRaw ? json_decode($rolesRaw, true) : [];
+        }
+        $data->roles = !empty($roles) ? $roles : ['ROLE_USER'];
+
+        // Fichier
+        $data->photo = $request->files->get('photo');
+
+
+        // Validation obligatoire (Default + groupe create pour password)
+        $errors = $validator->validate($data, null, ['Default', 'create']);
+        if (count($errors) > 0) {
+            $messages = [];
+            foreach ($errors as $error) {
+                $messages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            return new JsonResponse(['errors' => $messages], 400);
+        }
+
+        // Création de l'entité après validation
         $user = new User();
-        $user->setName($data['name']);
-        $user->setEmail($data['email']);
-        $user->setRoles($data['roles'] ?? ['ROLE_USER']);
-        $user->setActive($data['active'] ?? true);
-        $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
+        $user->setName($data->name)
+            ->setEmail($data->email)
+            ->setRoles($data->roles)
+            ->setActive($data->active)
+            ->setPassword($passwordHasher->hashPassword($user, $data->password));
+
+        if ($data->photo) {
+            $user->setPhotoFile($data->photo);
+        }
 
         $em->persist($user);
-
         $em->flush();
 
         $logger->log(
@@ -86,28 +122,61 @@ class UserController extends AbstractController
         return $this->json(['message' => 'Utilisateur créé', 'id' => $user->getId()], 201);
     }
 
-    #[Route('/{id}', name: 'user_update', methods: ['PUT'])]
+    #[Route('/{id}', name: 'user_update', methods: ['POST'])]
     public function update(
         int $id,
         Request $request,
         EntityManagerInterface $em,
         UserRepository $userRepository,
         UserPasswordHasherInterface $passwordHasher,
-        LoggerService $logger
+        LoggerService $logger,
+        ValidatorInterface $validator
     ): JsonResponse {
+
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $user = $userRepository->find($id);
         if (!$user) return $this->json(['error' => 'Utilisateur non trouvé'], 404);
 
-        $data = json_decode($request->getContent(), true);
-        if (isset($data['name'])) $user->setName($data['name']);
-        if (isset($data['email'])) $user->setEmail($data['email']);
-        if (isset($data['roles'])) $user->setRoles($data['roles']);
-        if (isset($data['active'])) $user->setActive($data['active']);
-        if (isset($data['password'])) {
-            $user->setPassword($passwordHasher->hashPassword($user, $data['password']));
+        $data = new UserData();
+        $data->name = $request->request->get('name') ?? $user->getName();
+        $data->email = $request->request->get('email') ?? $user->getEmail();
+        $data->password = $request->request->get('password'); // optionnel
+        $data->active = $request->request->get('active') !== null ? filter_var($request->request->get('active'), FILTER_VALIDATE_BOOLEAN) : $user->isActive();
+
+        // Roles
+        $roles = $request->request->all('roles');
+        if (empty($roles)) {
+            $rolesRaw = $request->request->get('roles');
+            $roles = $rolesRaw ? json_decode($rolesRaw, true) : [];
+        }
+        $data->roles = !empty($roles) ? $roles : $user->getRoles();
+
+        $data->photo = $request->files->get('photo');
+
+        // Validation (Default seulement, password optionnel)
+        $errors = $validator->validate($data, null, ['Default']);
+        if (count($errors) > 0) {
+            $messages = [];
+            foreach ($errors as $error) {
+                $messages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            return new JsonResponse(['errors' => $messages], 400);
         }
 
-        $em->persist($user);
+        // Mise à jour de l'entité
+        $user->setName($data->name)
+            ->setEmail($data->email)
+            ->setRoles($data->roles)
+            ->setActive($data->active);
+
+        if ($data->password) {
+            $user->setPassword($passwordHasher->hashPassword($user, $data->password));
+        }
+
+        if ($data->photo) {
+            $user->setPhotoFile($data->photo);
+        }
 
         $em->flush();
 
@@ -119,6 +188,8 @@ class UserController extends AbstractController
     #[Route('/{id}', name: 'user_delete', methods: ['DELETE'])]
     public function delete(int $id, EntityManagerInterface $em, UserRepository $userRepository, LoggerService $logger): JsonResponse
     {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
         $user = $userRepository->find($id);
         if (!$user) return $this->json(['error' => 'Utilisateur non trouvé'], 404);
 

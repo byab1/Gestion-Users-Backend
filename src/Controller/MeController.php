@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Dto\UserData;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -11,6 +12,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/me')]
 class MeController extends AbstractController
@@ -32,33 +34,54 @@ class MeController extends AbstractController
         ]);
     }
 
-    #[Route('', name: 'me_update', methods: ['PUT', 'POST'])]
+    #[Route('', name: 'me_update', methods: ['POST'])]
     public function updateMe(
         Request $request,
         EntityManagerInterface $em,
-        UserPasswordHasherInterface $hasher
+        UserPasswordHasherInterface $passwordHasher,
+        ValidatorInterface $validator
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
 
-        if ($request->getContentTypeFormat() === 'json') {
-            $data = json_decode($request->getContent(), true);
-            if (isset($data['name'])) $user->setName($data['name']);
-            if (isset($data['email'])) $user->setEmail($data['email']);
-            if (!empty($data['password'])) {
-                $user->setPassword($hasher->hashPassword($user, $data['password']));
-            }
-        } else {
+        $data = new UserData();
+        $data->name = $request->request->get('name') ?? $user->getName();
+        $data->email = $request->request->get('email') ?? $user->getEmail();
+        $data->password = $request->request->get('password'); // optionnel
+        $data->active = $request->request->get('active') !== null ? filter_var($request->request->get('active'), FILTER_VALIDATE_BOOLEAN) : $user->isActive();
 
-            /** @var UploadedFile $file */
-            $file = $request->files->get('photo');
-            // dd($file);
-            if ($file) {
-                $user->setPhotoFile($file);
-            }
+        // Roles
+        $roles = $request->request->all('roles');
+        if (empty($roles)) {
+            $rolesRaw = $request->request->get('roles');
+            $roles = $rolesRaw ? json_decode($rolesRaw, true) : [];
+        }
+        $data->roles = !empty($roles) ? $roles : $user->getRoles();
 
-            if ($request->request->get('name')) $user->setName($request->request->get('name'));
-            if ($request->request->get('email')) $user->setEmail($request->request->get('email'));
+        $data->photo = $request->files->get('photo');
+
+        // Validation (Default seulement, password optionnel)
+        $errors = $validator->validate($data, null, ['Default']);
+        if (count($errors) > 0) {
+            $messages = [];
+            foreach ($errors as $error) {
+                $messages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            return new JsonResponse(['errors' => $messages], 400);
+        }
+
+        // Mise à jour de l'entité
+        $user->setName($data->name)
+            ->setEmail($data->email)
+            ->setRoles($data->roles)
+            ->setActive($data->active);
+
+        if ($data->password) {
+            $user->setPassword($passwordHasher->hashPassword($user, $data->password));
+        }
+
+        if ($data->photo) {
+            $user->setPhotoFile($data->photo);
         }
 
         $em->flush();
