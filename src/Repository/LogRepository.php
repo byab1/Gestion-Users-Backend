@@ -40,4 +40,76 @@ class LogRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+    /**
+     * @param int $page
+     * @param int $limit
+     * @param string|null $userFilter
+     * @param string|null $actionFilter
+     * @param string $sort
+     * @param string $order
+     * @return array ['data' => Log[], 'total' => int]
+     */
+    public function findLogsPaginated(
+        int $page = 1,
+        int $limit = 10,
+        ?string $userFilter = null,
+        ?string $actionFilter = null,
+        string $sort = 'id',
+        string $order = 'ASC'
+    ): array {
+        $qb = $this->createQueryBuilder('l')
+            ->leftJoin('l.user', 'u')
+            ->addSelect('u');
+
+        // Filtrage
+        if ($userFilter) {
+            $qb->andWhere('u.name LIKE :user OR u.email LIKE :user')
+               ->setParameter('user', '%'.$userFilter.'%');
+        }
+        if ($actionFilter) {
+            $qb->andWhere('l.action LIKE :action')
+               ->setParameter('action', '%'.$actionFilter.'%');
+        }
+
+        // Tri
+        $allowedSortFields = ['id', 'action', 'createdAt', 'details', 'user'];
+        if (!in_array($sort, $allowedSortFields)) {
+            $sort = 'id';
+        }
+        $order = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
+        if ($sort === 'user') {
+            $qb->orderBy('u.name', $order);
+        } else {
+            $qb->orderBy('l.'.$sort, $order);
+        }
+
+        // Pagination
+        $offset = ($page - 1) * $limit;
+        $qb->setFirstResult($offset)
+           ->setMaxResults($limit);
+
+        $logs = $qb->getQuery()->getResult();
+
+        // Total
+        $countQb = $this->createQueryBuilder('l')
+            ->select('COUNT(l.id)')
+            ->leftJoin('l.user', 'u');
+
+        if ($userFilter) {
+            $countQb->andWhere('u.name LIKE :user OR u.email LIKE :user')
+                    ->setParameter('user', '%'.$userFilter.'%');
+        }
+        if ($actionFilter) {
+            $countQb->andWhere('l.action LIKE :action')
+                    ->setParameter('action', '%'.$actionFilter.'%');
+        }
+
+        $total = (int)$countQb->getQuery()->getSingleScalarResult();
+
+        return [
+            'data' => $logs,
+            'total' => $total,
+        ];
+    }
 }
