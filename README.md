@@ -80,6 +80,11 @@ symfony serve
 php -S 127.0.0.1:8000 -t public
 ``` 
 
+7. Commande pour créer un compte ADMIN :
+```bash
+php bin/console app:create-admin "Super Admin" angebrou@example.com "password"
+```
+
 ### 2. TESTS
 
 Exécuter les tests PHPUnit :
