@@ -1,14 +1,14 @@
 nelmio_cors:
     defaults:
         allow_credentials: true
-        allow_origin: ['http://localhost:5173', 'http://user-managment.adlabro.com'] # ton frontend
+        allow_origin: ['http://localhost:5173', 'https://user-managment.adlabro.com'] # ton frontend
         allow_headers: ['Content-Type', 'Authorization']
         allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
         expose_headers: ['Authorization']
         max_age: 3600
     paths:
         '^/': # applique à toutes les routes de l'API
-            allow_origin: ['http://localhost:5173', 'http://user-managment.adlabro.com']
+            allow_origin: ['http://localhost:5173', 'https://user-managment.adlabro.com']
             allow_headers: ['Content-Type', 'Authorization']
             allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
             allow_credentials: true
