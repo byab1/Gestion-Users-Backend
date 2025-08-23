@@ -8,6 +8,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 
 /**
  * @extends ServiceEntityRepository<User>
@@ -57,4 +58,52 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     //            ->getOneOrNullResult()
     //        ;
     //    }
+
+    /**
+     * Récupère les utilisateurs avec pagination, filtres, tri
+     */
+    public function findPaginatedUsers(
+        int $page = 1,
+        int $limit = 10,
+        ?string $name = null,
+        ?string $email = null,
+        string $sort = 'id',
+        string $order = 'asc'
+    ): array {
+        $qb = $this->createQueryBuilder('u');
+
+        // Filtres
+        if ($name) {
+            $qb->andWhere('u.name LIKE :name')
+               ->setParameter('name', "%$name%");
+        }
+
+        if ($email) {
+            $qb->andWhere('u.email LIKE :email')
+               ->setParameter('email', "%$email%");
+        }
+
+        // Sécurité : whitelist des champs triables
+        $allowedSortFields = ['id', 'name', 'email', 'createdAt', 'active'];
+        if (!in_array($sort, $allowedSortFields)) {
+            $sort = 'id';
+        }
+
+        $order = strtolower($order) === 'desc' ? 'DESC' : 'ASC';
+
+        $qb->orderBy("u.$sort", $order);
+
+        // Pagination
+        $qb->setFirstResult(($page - 1) * $limit)
+           ->setMaxResults($limit);
+
+        $paginator = new Paginator($qb);
+
+        return [
+            'data' => iterator_to_array($paginator),
+            'total' => count($paginator),
+            'page' => $page,
+            'limit' => $limit,
+        ];
+    }
 }

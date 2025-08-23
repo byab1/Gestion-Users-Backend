@@ -9,6 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Vich\UploaderBundle\Mapping\Annotation as Vich;
 use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[Vich\Uploadable]
@@ -17,15 +18,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['user:read'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank(message: "Le nom est obligatoire")]
+    #[Groups(['user:read'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 180, unique: true)]
    #[Assert\NotBlank(message: "L'email est obligatoire")]
     #[Assert\Email(message: "L'email '{{ value }}' n'est pas valide")]
+    #[Groups(['user:read'])]
     private ?string $email = null;
 
     #[ORM\Column]
@@ -33,6 +37,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\All([
         new Assert\Choice(['ROLE_USER', 'ROLE_ADMIN'], message: "Rôle invalide")
     ])]
+    #[Groups(['user:read'])]
     private array $roles = [];
 
     #[ORM\Column]
@@ -41,15 +46,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[ORM\Column(type: 'boolean')]
+    #[Groups(['user:read'])]
     private bool $active = true;
 
     #[ORM\Column(type: 'datetime_immutable')]
+    #[Groups(['user:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(type: 'datetime_immutable', nullable:true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['user:read'])]
     private ?string $photo = null;
 
     #[Vich\UploadableField(mapping: 'user_photos', fileNameProperty: 'photo')]

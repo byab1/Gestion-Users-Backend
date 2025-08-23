@@ -20,43 +20,17 @@ class UserController extends AbstractController
     #[Route('', name: 'user_index', methods: ['GET'])]
     public function index(Request $request, UserRepository $userRepository): JsonResponse
     {
-        $page = max(1, (int) $request->query->get('page', 1));
-        $limit = min(50, (int) $request->query->get('limit', 10));
+
+        $page = $request->query->getInt('page', 1);
+        $limit = $request->query->getInt('limit', 10);
         $name = $request->query->get('name');
         $email = $request->query->get('email');
+        $sort = $request->query->get('sort', 'id');
+        $order = $request->query->get('order', 'asc');
 
-        $qb = $userRepository->createQueryBuilder('u');
+        $result = $userRepository->findPaginatedUsers($page, $limit, $name, $email, $sort, $order);
 
-        if ($name) {
-            $qb->andWhere('u.name LIKE :name')->setParameter('name', "%$name%");
-        }
-        if ($email) {
-            $qb->andWhere('u.email LIKE :email')->setParameter('email', "%$email%");
-        }
-
-        $qb->orderBy('u.createdAt', 'DESC')
-            ->setFirstResult(($page - 1) * $limit)
-            ->setMaxResults($limit);
-
-        $users = $qb->getQuery()->getResult();
-        $total = (clone $qb)->select('COUNT(u.id)')->setFirstResult(0)->setMaxResults(null)->getQuery()->getSingleScalarResult();
-
-        $data = array_map(fn(User $u) => [
-            'id' => $u->getId(),
-            'name' => $u->getName(),
-            'email' => $u->getEmail(),
-            'roles' => $u->getRoles(),
-            'active' => $u->isActive(),
-            'createdAt' => $u->getCreatedAt()->format('Y-m-d H:i:s'),
-            'photo' => $u->getPhoto(),
-        ], $users);
-
-        return $this->json([
-            'data' => $data,
-            'total' => $total,
-            'page' => $page,
-            'limit' => $limit,
-        ]);
+        return $this->json($result, 200, [], ['groups' => 'user:read']);
     }
 
     #[Route('', name: 'user_create', methods: ['POST'])]
